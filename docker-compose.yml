@@ -1,0 +1,64 @@
+version: '3'
+services:
+  app-ea:
+    image: junioroliveira/escolhaazul:1.2.3
+    container_name: escolhaazul_app
+    environment:
+      APP_ENV: production
+      APP_KEY: "${APP_KEY}"
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: "${DB_DATABASE}"
+      DB_USERNAME: "${DB_USERNAME}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_public:/var/www/html/public # Volume compartilhado
+    depends_on:
+      - db
+    networks:
+      - escolhaazul
+
+  db:
+    image: mysql:5.7
+    container_name: escolhaazul_db
+    environment:
+      MYSQL_DATABASE: "${DB_DATABASE}"
+      MYSQL_USER: "${DB_USERNAME}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+    ports:
+      - "53306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - escolhaazul
+
+  nginx:
+    image: nginx:alpine
+    container_name: escolhaazul_nginx
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - app_public:/var/www/html/public # Mesma pasta pública
+    ports:
+      - "8081:80"
+     # - "443:443"
+    environment:
+      - VIRTUAL_HOST=escolhaazul.sytes.net
+      - LETSENCRYPT_HOST=escolhaazul.sytes.net
+      - LETSENCRYPT_EMAIL=franciscoanto@gmail.com
+    depends_on:
+      - app-ea
+    networks:
+      - escolhaazul
+      - nginx-proxy_default
+
+volumes:
+  db_data:
+  app_storage:
+  app_public:
+
+networks:
+  escolhaazul:
+  nginx-proxy_default:
+      external: true
